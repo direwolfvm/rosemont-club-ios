@@ -83,9 +83,18 @@ struct AuthView: View {
                 }
                 .buttonStyle(.secondary)
                 .disabled(busy)
-                HStack { Rectangle().fill(Color.line).frame(height: 1); Text("or").font(.footnote).foregroundStyle(Color.mutedInk); Rectangle().fill(Color.line).frame(height: 1) }
             }
 
+            if !reset {
+                Button {
+                    Task { await google() }
+                } label: {
+                    Label("Continue with Google", systemImage: "globe")
+                }
+                .buttonStyle(.secondary)
+                .disabled(busy)
+                HStack { Rectangle().fill(Color.line).frame(height: 1); Text("or").font(.footnote).foregroundStyle(Color.mutedInk); Rectangle().fill(Color.line).frame(height: 1) }
+            }
             if mode == .register, !reset {
                 LabeledField(label: "Display name", hint: "How neighbors will see you. You can change it later.") {
                     TextField("First and last name", text: $name)
@@ -158,7 +167,7 @@ struct AuthView: View {
             .font(.system(size: 14, weight: .semibold))
             .foregroundStyle(Color.brand)
 
-            Text("Google sign-in is available on rosemont.club. In the app, use the same email and a password (set one with \"Forgot password?\" if you signed up with Google). Your profile and Club permissions stay separate from Alex311.")
+            Text("We use the existing Firebase sign-in service. Your profile and Club permissions stay separate from Alex311.")
                 .font(.footnote).foregroundStyle(Color.mutedInk)
         }
     }
@@ -220,6 +229,20 @@ struct AuthView: View {
                     dismiss()
                 }
             }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    private func google() async {
+        guard !busy else { return }
+        busy = true; error = nil
+        defer { busy = false }
+        do {
+            try await model.signInWithGoogle()
+            if Biometrics.available, !model.biometricLockEnabled { welcomeAfterSignIn() } else { dismiss() }
+        } catch GoogleSignIn.Error.cancelled {
+            // Nothing to report.
         } catch {
             self.error = error.localizedDescription
         }

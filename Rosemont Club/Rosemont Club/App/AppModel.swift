@@ -28,6 +28,9 @@ final class AppModel {
     var notice: String?
     var authPresented = false
     var config = AppConfig.cached()
+    /// A universal link waiting to be shown once records are loaded.
+    var pendingLink: DeepLink?
+    private let google = GoogleSignIn()
 
     private var backgroundedAt: Date?
     private var refreshTask: Task<Void, Never>?
@@ -192,6 +195,12 @@ final class AppModel {
         }
     }
 
+    func signInWithGoogle() async throws {
+        let idToken = try await google.signIn()
+        let s = try await auth.signIn(googleIDToken: idToken)
+        try await adopt(s)
+    }
+
     func sendPasswordReset(email: String) async throws {
         try await auth.sendPasswordReset(email: email)
     }
@@ -244,6 +253,15 @@ final class AppModel {
         return s.idToken
     }
 
+    // MARK: - Universal links
+
+    /// Accepts `https://rosemont.club/{kind}/{slug}` and the top-level pages the
+    /// association file covers. Unknown paths are ignored (Safari keeps them).
+    func open(url: URL) {
+        guard let link = DeepLink(url: url) else { return }
+        pendingLink = link
+    }
+
     // MARK: - Actions shared by screens
 
     func notify(_ message: String) {
@@ -274,6 +292,32 @@ final class AppModel {
     func requireSignIn() -> Bool {
         if user == nil { authPresented = true; return false }
         return true
+    }
+}
+
+/// Website paths the app can show natively.
+enum DeepLink: Equatable {
+    case entity(kind: Kind, slug: String)
+    case route(Route)
+
+    init?(url: URL) {
+        guard url.host()?.lowercased() == "rosemont.club" else { return nil }
+        let parts = url.pathComponents.filter { $0 != "/" }
+        switch parts.count {
+        case 0: self = .route(.about); return
+        case 1:
+            switch parts[0] {
+            case "about": self = .route(.about)
+            case "governance": self = .route(.governance)
+            case "profile", "following": self = .route(.profile)
+            case "groups", "events", "resources": self = .route(.directory(Kind(rawValue: parts[0])!))
+            default: return nil
+            }
+        case 2:
+            guard let kind = Kind(rawValue: parts[0]), [.groups, .events, .resources, .polls, .consultations].contains(kind) else { return nil }
+            self = .entity(kind: kind, slug: parts[1])
+        default: return nil
+        }
     }
 }
 

@@ -2,7 +2,7 @@
 
 **For:** the agent working in `direwolfvm/rosemont-club` (the Next.js site, local checkout `/Users/jke/Github-local/rosemont-club`).
 **From:** the iOS app session, repo `rosemont-club-ios`, branch `claude/ios-app-biometric-auth-f51aca`.
-**Date:** September 18, 2026.
+**Date:** September 18, 2026. **Status:** answered by the web side the same day on branch `ios-handoff` (`docs/IOS.md` there); section 8 below records what the app did with the answers.
 
 ## 1. What the iOS client is
 
@@ -126,6 +126,24 @@ Also run `npm test` after adding the origin regression test, and use the existin
 - Whether you want a client header (`X-Rosemont-Client`) and, if so, the exact name.
 - Google OAuth iOS client ID, only if P2.8 is pursued.
 
+## 8. Resolution (September 18, 2026)
+
+The web side answered in `docs/IOS.md` on `ios-handoff`. What changed in the app as a result:
+
+| Handoff item | Web answer | App change |
+|---|---|---|
+| P0.1 null origin | Kept, comment added, regression test in `tests/origin.test.ts` | Nothing needed. App now also sends `X-Rosemont-Client: ios/<version>` on every request. |
+| P0.2 Firebase iOS app | Registered for bundle `club.rosemont.ios`; `/api/config` serves its key and app ID to iOS requests, plus `iosMinimumVersion` and `platform` | Bundle ID set to `club.rosemont.ios` (Xcode's template default was replaced). Fallback config uses the iOS key and app ID. Update banner when the build is below `iosMinimumVersion`. |
+| P0.3 auth emails | Action URL stays Firebase's shared handler; app should pass `continueUrl` | `continueUrl: https://rosemont.club` added to verification and reset requests. Password minimum stays 8 (tenant default is 6). |
+| P0.4 App Store pages | `https://rosemont.club/privacy` and `/support`, admin-editable | Use these in App Store Connect. |
+| P1.5 universal links | AASA generated at `/.well-known/apple-app-site-association` once `APPLE_TEAM_ID` is set; currently 404 | Entitlements file with `applinks:` and `webcredentials:`; universal links route to detail pages and top-level screens. **Web side still needs `APPLE_TEAM_ID`; the Xcode project signs with team `LAKT4757H4`.** |
+| P1.6 API contract | Acknowledged | None. |
+| P1.7 Smart App Banner | Emitted once `APPLE_APP_STORE_ID` is set | Provide the App Store ID after listing. |
+| P2.8 Google sign-in | iOS OAuth client created (client ID and reversed ID in `docs/IOS.md`) | Native "Continue with Google" via `ASWebAuthenticationSession` + PKCE + `signInWithIdp`. |
+| P2.9 version gate | `iosMinimumVersion` in `/api/config` | Read and enforced with a banner. |
+
+Verified live: `GET /api/config` with `X-Rosemont-Client: ios/1.0` now returns the iOS key, iOS app ID, `iosMinimumVersion: 1.0.0` and `platform: ios`. Still open on the web side: set `APPLE_TEAM_ID` (and later `APPLE_APP_STORE_ID`) in `deploy-env.yaml` and redeploy; the association file returns 404 until then.
+
 ## 7. Non-goals
 
-The app deliberately does not include content creation and editing, the admin console, or Google sign-in. Owners and admins are linked to the website pages for those. No web changes are needed for that split.
+The app deliberately does not include content creation and editing or the admin console. Owners and admins are linked to the website pages for those. No web changes are needed for that split.

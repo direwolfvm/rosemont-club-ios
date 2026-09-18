@@ -17,7 +17,13 @@ A native SwiftUI app (Xcode project in `Rosemont Club/`) for [rosemont.club](htt
 - Email/password sign-in and registration go straight to the Firebase Identity Toolkit REST API for the shared Identity Platform tenant (`alex311-qfnem`), so no Firebase SDK is bundled. Public client identifiers are fetched from `/api/config` at launch with the same values as a fallback.
 - Registration is a mobile-friendly form (display name, email keyboard, password with visibility toggle and an 8-character minimum). It sends the verification email, creates the Club profile through the API, and then offers Face ID / Touch ID and residency verification in a short welcome step.
 - **Biometric verification**: when enabled, the Firebase refresh token is stored in the Keychain behind a `.biometryCurrentSet` access control. Reading it prompts for Face ID / Touch ID, and the item is invalidated if the enrolled biometrics change. The app shows a lock screen at launch and after two minutes in the background, with password sign-in and public browsing as fallbacks. Without biometrics enabled, the session is stored in the Keychain (this device only) and restored silently, like the website's persistent sign-in.
-- Google sign-in remains a website feature: it needs an iOS OAuth client registered in the Firebase project. Neighbors who signed up with Google can set a password with "Forgot password?" and use it in the app.
+- **Google sign-in** runs natively through `ASWebAuthenticationSession` with PKCE against the Firebase project's iOS OAuth client, then exchanges the Google ID token with Firebase (`signInWithIdp`). No Google SDK is bundled. See [GoogleSignIn.swift](Rosemont%20Club/Rosemont%20Club/Services/GoogleSignIn.swift).
+- The app identifies itself with `X-Rosemont-Client: ios/<version>`; `/api/config` then returns the Firebase iOS app's key and an `iosMinimumVersion`. Below that version the app shows an update banner.
+- Verification and reset emails carry `continueUrl: https://rosemont.club`.
+
+## Universal links
+
+The entitlements file declares `applinks:rosemont.club` and `webcredentials:rosemont.club`. Once the site serves `/.well-known/apple-app-site-association` (it needs `APPLE_TEAM_ID` set on the web side), links to groups, events, resources, polls, consultations, profile, about and governance open inside the app, and iOS Password AutoFill offers rosemont.club passwords in the sign-in form. Device builds need the Associated Domains capability, which automatic signing adds.
 
 ## Building
 
@@ -46,6 +52,7 @@ Keychain items with biometric access control require a signed build (the default
 | `Rosemont Club/Rosemont Club/Models/Entity.swift` | Lenient decoding of `/api/entities` records and audience helpers |
 | `Rosemont Club/Rosemont Club/Models/Occurrences.swift` | Port of `lib/events.ts` recurrence, display formatting, Google Calendar link |
 | `Rosemont Club/Rosemont Club/Services/FirebaseAuth.swift` | Identity Toolkit REST client: sign in, sign up, verification, reset, refresh |
+| `Rosemont Club/Rosemont Club/Services/GoogleSignIn.swift` | Native Google OAuth (PKCE) without the Google SDK |
 | `Rosemont Club/Rosemont Club/Services/Keychain.swift` | Keychain wrapper with biometric access control; biometry capability checks |
 | `Rosemont Club/Rosemont Club/Services/APIClient.swift` | Bearer-token JSON client for `https://rosemont.club/api` |
 | `Rosemont Club/Rosemont Club/Views/` | Home, directories, detail, profile, auth, lock, governance, about |
@@ -57,4 +64,4 @@ In Debug builds only, `-seedBiometricSession` stores a dummy biometric-protected
 
 ## Not in the app
 
-Content creation and editing, the volunteer admin console (people, permissions, inbox, audit), and Google sign-in stay on the website. Owners and administrators see a link to the relevant website page from the app.
+Content creation and editing and the volunteer admin console (people, permissions, inbox, audit) stay on the website. Owners and administrators see a link to the relevant website page from the app.

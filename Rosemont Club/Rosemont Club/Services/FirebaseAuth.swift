@@ -70,13 +70,26 @@ struct FirebaseAuth {
     func sendEmailVerification(idToken: String) async throws {
         let _: TokenResponse = try await post("accounts:sendOobCode", [
             "requestType": "VERIFY_EMAIL", "idToken": idToken, "tenantId": config.tenantId,
+            "continueUrl": AppConfig.baseURL.absoluteString,
         ])
     }
 
     func sendPasswordReset(email: String) async throws {
         let _: TokenResponse = try await post("accounts:sendOobCode", [
             "requestType": "PASSWORD_RESET", "email": email, "tenantId": config.tenantId,
+            "continueUrl": AppConfig.baseURL.absoluteString,
         ])
+    }
+
+    /// Signs in with a Google ID token obtained natively (see `GoogleSignIn`).
+    func signIn(googleIDToken: String) async throws -> FirebaseSession {
+        let r: TokenResponse = try await post("accounts:signInWithIdp", [
+            "postBody": "id_token=\(googleIDToken)&providerId=google.com",
+            "requestUri": AppConfig.baseURL.absoluteString,
+            "returnSecureToken": true,
+            "tenantId": config.tenantId,
+        ])
+        return r.session(email: "")
     }
 
     func refresh(_ s: FirebaseSession) async throws -> FirebaseSession {

@@ -2,14 +2,16 @@ import SwiftUI
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @Environment(\.openURL) private var openURL
     @State private var tab: Tab = .home
+    @State private var homePath = NavigationPath()
 
     enum Tab: Hashable { case home, groups, events, resources, you }
 
     var body: some View {
         @Bindable var model = model
         TabView(selection: $tab) {
-            NavigationStack { HomeView() }
+            NavigationStack(path: $homePath) { HomeView() }
                 .tabItem { Label("Home", systemImage: "house") }
                 .tag(Tab.home)
             NavigationStack { DirectoryView(kind: .groups) }
@@ -26,6 +28,27 @@ struct RootView: View {
                 .tag(Tab.you)
         }
         .tint(Color.brand)
+        .onOpenURL { model.open(url: $0) }
+        .onContinueUserActivity(NSUserActivityTypeBrowsingWeb) { activity in
+            if let url = activity.webpageURL { model.open(url: url) }
+        }
+        .onChange(of: model.pendingLink) { _, _ in followPendingLink() }
+        .onChange(of: model.loading) { _, _ in followPendingLink() }
+        .overlay(alignment: .top) {
+            if model.config.updateRequired {
+                Button {
+                    openURL(ExternalLinks.website)
+                } label: {
+                    Label("This version of the app is out of date. Please update to keep using it.", systemImage: "arrow.down.circle")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(.white)
+                        .padding(12)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.clay, in: RoundedRectangle(cornerRadius: 10))
+                        .padding(.horizontal, 16)
+                }
+            }
+        }
         .overlay(alignment: .bottom) {
             if let notice = model.notice {
                 NoticeBanner(text: notice)
@@ -40,6 +63,28 @@ struct RootView: View {
         }
         .fullScreenCover(isPresented: $model.isLocked) {
             LockView()
+        }
+    }
+}
+
+extension RootView {
+    /// Universal links land on the Home tab's stack so the back button returns to the neighborhood.
+    private func followPendingLink() {
+        guard let link = model.pendingLink else { return }
+        switch link {
+        case .route(let route):
+            tab = .home
+            homePath = NavigationPath([route])
+            model.pendingLink = nil
+        case .entity(let kind, let slug):
+            guard !model.loading else { return }
+            if let entity = model.entity(kind: kind, slug: slug) {
+                tab = .home
+                homePath = NavigationPath([entity])
+            } else if !model.records.isEmpty {
+                model.notify("We couldn't find that page. It may be unpublished or no longer available.")
+            }
+            model.pendingLink = nil
         }
     }
 }

@@ -70,6 +70,7 @@ struct APIClient {
         r.timeoutInterval = 30
         r.cachePolicy = .reloadIgnoringLocalCacheData
         r.setValue("application/json", forHTTPHeaderField: "Accept")
+        r.setValue(AppConfig.clientHeader, forHTTPHeaderField: "X-Rosemont-Client")
         if let token = try await tokenProvider() {
             r.setValue("Bearer " + token, forHTTPHeaderField: "Authorization")
         }
