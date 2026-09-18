@@ -271,7 +271,7 @@ struct Entity: Codable, Identifiable, Hashable {
     }
 }
 
-enum ISO8601 {
+nonisolated enum ISO8601 {
     private static let full: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

@@ -1,6 +1,6 @@
 # The Rosemont Club for iOS
 
-A native SwiftUI app for [rosemont.club](https://rosemont.club), the neighborhood homepage, directory, calendar, and resource finder for Rosemont, Alexandria. It talks to the same trusted API and Firebase sign-in that the website uses, so profiles, permissions, residency status, RSVPs, follows, and poll responses are shared between web and app.
+A native SwiftUI app (Xcode project in `Rosemont Club/`) for [rosemont.club](https://rosemont.club), the neighborhood homepage, directory, calendar, and resource finder for Rosemont, Alexandria. It talks to the same trusted API and Firebase sign-in that the website uses, so profiles, permissions, residency status, RSVPs, follows, and poll responses are shared between web and app.
 
 ## What the app does
 
@@ -24,15 +24,15 @@ A native SwiftUI app for [rosemont.club](https://rosemont.club), the neighborhoo
 Requires Xcode 16 or later and iOS 17 or later.
 
 ```sh
-open RosemontClub.xcodeproj
+open "Rosemont Club/Rosemont Club.xcodeproj"
 ```
 
-Select the RosemontClub scheme and run on a simulator or device. For a device, choose your team under Signing & Capabilities. The project uses no third-party dependencies.
+Select the Rosemont Club scheme and run on a simulator or device. For a device, choose your team under Signing & Capabilities. The project uses no third-party dependencies.
 
 Command-line build for the simulator:
 
 ```sh
-xcodebuild -project RosemontClub.xcodeproj -scheme RosemontClub -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
+xcodebuild -project "Rosemont Club/Rosemont Club.xcodeproj" -scheme "Rosemont Club" -destination 'platform=iOS Simulator,name=iPhone 17 Pro' build
 ```
 
 Keychain items with biometric access control require a signed build (the default "Sign to Run Locally" simulator signing is enough). Building with `CODE_SIGNING_ALLOWED=NO` makes those Keychain calls fail with `errSecMissingEntitlement`.
@@ -41,15 +41,15 @@ Keychain items with biometric access control require a signed build (the default
 
 | Path | Responsibility |
 |---|---|
-| `RosemontClub/App/AppModel.swift` | Directory state, session, token refresh, biometric lock, notices |
-| `RosemontClub/App/Theme.swift` | Website palette with dark-mode counterparts, button and card styles |
-| `RosemontClub/Models/Entity.swift` | Lenient decoding of `/api/entities` records and audience helpers |
-| `RosemontClub/Models/Occurrences.swift` | Port of `lib/events.ts` recurrence, display formatting, Google Calendar link |
-| `RosemontClub/Services/FirebaseAuth.swift` | Identity Toolkit REST client: sign in, sign up, verification, reset, refresh |
-| `RosemontClub/Services/Keychain.swift` | Keychain wrapper with biometric access control; biometry capability checks |
-| `RosemontClub/Services/APIClient.swift` | Bearer-token JSON client for `https://rosemont.club/api` |
-| `RosemontClub/Views/` | Home, directories, detail, profile, auth, lock, governance, about |
-| `RosemontClub/Resources/rosemont-boundary.json` | Community boundary outline drawn on the About page |
+| `Rosemont Club/Rosemont Club/App/AppModel.swift` | Directory state, session, token refresh, biometric lock, notices |
+| `Rosemont Club/Rosemont Club/App/Theme.swift` | Website palette with dark-mode counterparts, button and card styles |
+| `Rosemont Club/Rosemont Club/Models/Entity.swift` | Lenient decoding of `/api/entities` records and audience helpers |
+| `Rosemont Club/Rosemont Club/Models/Occurrences.swift` | Port of `lib/events.ts` recurrence, display formatting, Google Calendar link |
+| `Rosemont Club/Rosemont Club/Services/FirebaseAuth.swift` | Identity Toolkit REST client: sign in, sign up, verification, reset, refresh |
+| `Rosemont Club/Rosemont Club/Services/Keychain.swift` | Keychain wrapper with biometric access control; biometry capability checks |
+| `Rosemont Club/Rosemont Club/Services/APIClient.swift` | Bearer-token JSON client for `https://rosemont.club/api` |
+| `Rosemont Club/Rosemont Club/Views/` | Home, directories, detail, profile, auth, lock, governance, about |
+| `Rosemont Club/Rosemont Club/Resources/rosemont-boundary.json` | Community boundary outline drawn on the About page |
 
 ## Debug launch arguments
 

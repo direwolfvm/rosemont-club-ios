@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct RosemontClubApp: App {
+struct Rosemont_ClubApp: App {
     @State private var model = AppModel()
     @Environment(\.scenePhase) private var scenePhase
 

@@ -2,7 +2,7 @@ import Foundation
 
 /// Client-side port of `lib/events.ts#occurrences`. Occurrence strings are wall-clock
 /// Eastern times in `yyyy-MM-dd'T'HH:mm` form, exactly what the RSVP API expects.
-enum Occurrences {
+nonisolated enum Occurrences {
     static let zone = TimeZone(identifier: "America/New_York")!
 
     static var calendar: Calendar {

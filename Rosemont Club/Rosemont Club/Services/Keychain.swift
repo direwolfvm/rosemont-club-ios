@@ -22,7 +22,7 @@ enum KeychainError: LocalizedError {
 /// `.biometryCurrentSet` access control, so reading them prompts for Face ID / Touch ID
 /// and the item becomes unreadable if the enrolled biometrics change.
 enum Keychain {
-    static let service = "club.rosemont.ios"
+    static let service = Bundle.main.bundleIdentifier ?? "com.herbertindustries.Rosemont-Club"
 
     static func save(_ data: Data, account: String, biometric: Bool) throws {
         delete(account: account)
@@ -78,6 +78,12 @@ enum Keychain {
         }
     }
 
+    private static var silentContext: LAContext {
+        let c = LAContext()
+        c.interactionNotAllowed = true
+        return c
+    }
+
     /// Checks presence without triggering an authentication prompt (attributes only).
     static func exists(account: String) -> Bool {
         let query: [String: Any] = [
@@ -85,7 +91,7 @@ enum Keychain {
             kSecAttrService as String: service,
             kSecAttrAccount as String: account,
             kSecReturnAttributes as String: true,
-            kSecUseAuthenticationUI as String: kSecUseAuthenticationUIFail,
+            kSecUseAuthenticationContext as String: silentContext,
         ]
         let status = SecItemCopyMatching(query as CFDictionary, nil)
         return status == errSecSuccess || status == errSecInteractionNotAllowed

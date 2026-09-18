@@ -6,7 +6,7 @@
 
 ## 1. What the iOS client is
 
-A native SwiftUI app (bundle ID `club.rosemont.ios`, iOS 17+) that uses the website's existing backend unchanged:
+A native SwiftUI app (bundle ID `com.herbertindustries.Rosemont-Club`, iOS 17+) that uses the website's existing backend unchanged:
 
 - Reads and writes through `https://rosemont.club/api/*` with `Authorization: Bearer <Firebase ID token>`, exactly like the browser client in `components/client.tsx`.
 - Signs in with the Firebase Identity Toolkit REST API directly (no Firebase SDK), scoped to the shared tenant `alex311-qfnem`. It reads the public client config from `GET /api/config` at launch and falls back to the same values from `deploy-env.yaml`.
@@ -27,7 +27,7 @@ Everything below is either hardening of those implicit dependencies or enabling 
 
 1. **Lock in the null-origin behavior.** The app depends on `allowedOrigin(null, …) === true`. Add a regression test in `tests/origin.test.ts` asserting that a missing `Origin` header is allowed, and a comment in `lib/origin.ts` noting the native iOS client relies on it. Do not switch to "reject when Origin is missing" without coordinating a client header scheme first. If you want an explicit signal, the app can add `X-Rosemont-Client: ios/<version>`; say so and the iOS side will ship it.
 
-2. **Keep the Firebase web API key usable from native clients.** Do not add HTTP-referrer restrictions to `FIREBASE_API_KEY` in Google Cloud without also creating an iOS-restricted key. Preferred: register an iOS app (bundle `club.rosemont.ios`) in the Firebase project `permitting-ai-helper`, then either
+2. **Keep the Firebase web API key usable from native clients.** Do not add HTTP-referrer restrictions to `FIREBASE_API_KEY` in Google Cloud without also creating an iOS-restricted key. Preferred: register an iOS app (bundle `com.herbertindustries.Rosemont-Club`) in the Firebase project `permitting-ai-helper`, then either
    - return its `apiKey`/`appId` from `GET /api/config` when the request carries `X-Rosemont-Client: ios/*` (or a `?platform=ios` query), or
    - hand the values to the iOS side to bake into `AppConfig.fallback`.
    Either way, keep the existing `/api/config` response shape (`apiKey`, `authDomain`, `projectId`, `appId`, `tenantId`) backward compatible.
@@ -45,14 +45,14 @@ Everything below is either hardening of those implicit dependencies or enabling 
      "applinks": {
        "apps": [],
        "details": [
-         { "appIDs": ["TEAMID.club.rosemont.ios"], "components": [
+         { "appIDs": ["TEAMID.com.herbertindustries.Rosemont-Club"], "components": [
            { "/": "/groups/*" }, { "/": "/events/*" }, { "/": "/resources/*" },
            { "/": "/polls/*" }, { "/": "/consultations/*" },
            { "/": "/profile" }, { "/": "/about" }, { "/": "/governance" }
          ] }
        ]
      },
-     "webcredentials": { "apps": ["TEAMID.club.rosemont.ios"] }
+     "webcredentials": { "apps": ["TEAMID.com.herbertindustries.Rosemont-Club"] }
    }
    ```
 
@@ -68,7 +68,7 @@ Everything below is either hardening of those implicit dependencies or enabling 
 
 ### P2. Optional
 
-8. **Google sign-in in the app.** Not implemented on iOS because it needs an iOS OAuth client. If wanted: create an iOS OAuth client ID for bundle `club.rosemont.ios` in the `permitting-ai-helper` Google Cloud project (Firebase console does this when the iOS app is registered), confirm the Google provider is enabled on the tenant, and send the client ID and reversed client ID. The app would then use Google Sign-In plus `accounts:signInWithIdp`. Until then, the app tells Google users to set a password with "Forgot password?".
+8. **Google sign-in in the app.** Not implemented on iOS because it needs an iOS OAuth client. If wanted: create an iOS OAuth client ID for bundle `com.herbertindustries.Rosemont-Club` in the `permitting-ai-helper` Google Cloud project (Firebase console does this when the iOS app is registered), confirm the Google provider is enabled on the tenant, and send the client ID and reversed client ID. The app would then use Google Sign-In plus `accounts:signInWithIdp`. Until then, the app tells Google users to set a password with "Forgot password?".
 
 9. **Client version gate.** Consider adding `iosMinimumVersion` to `/api/config` so a breaking API change can prompt an app update instead of failing silently. The app will read it if present.
 
