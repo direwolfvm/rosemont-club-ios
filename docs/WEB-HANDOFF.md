@@ -133,7 +133,7 @@ The web side answered in `docs/IOS.md` on `ios-handoff`. What changed in the app
 | Handoff item | Web answer | App change |
 |---|---|---|
 | P0.1 null origin | Kept, comment added, regression test in `tests/origin.test.ts` | Nothing needed. App now also sends `X-Rosemont-Client: ios/<version>` on every request. |
-| P0.2 Firebase iOS app | Registered for bundle `club.rosemont.ios`; `/api/config` serves its key and app ID to iOS requests, plus `iosMinimumVersion` and `platform` | Bundle ID set to `club.rosemont.ios` (Xcode's template default was replaced). Fallback config uses the iOS key and app ID. Update banner when the build is below `iosMinimumVersion`. |
+| P0.2 Firebase iOS app | Registered for bundle `club.rosemont.ios`; `/api/config` serves its key and app ID to iOS requests, plus `iosMinimumVersion` and `platform` | Bundle ID was `club.rosemont.ios` at this point; it later became `com.rosemont.rosemontclub` when the App Store Connect record was created (see section 9). Fallback config uses the iOS key and app ID. Update banner when the build is below `iosMinimumVersion`. |
 | P0.3 auth emails | Action URL stays Firebase's shared handler; app should pass `continueUrl` | `continueUrl: https://rosemont.club` added to verification and reset requests. Password minimum stays 8 (tenant default is 6). |
 | P0.4 App Store pages | `https://rosemont.club/privacy` and `/support`, admin-editable | Use these in App Store Connect. |
 | P1.5 universal links | AASA generated at `/.well-known/apple-app-site-association` once `APPLE_TEAM_ID` is set; currently 404 | Entitlements file with `applinks:` and `webcredentials:`; universal links route to detail pages and top-level screens. **Web side still needs `APPLE_TEAM_ID`; the Xcode project signs with team `LAKT4757H4`.** |
@@ -143,6 +143,13 @@ The web side answered in `docs/IOS.md` on `ios-handoff`. What changed in the app
 | P2.9 version gate | `iosMinimumVersion` in `/api/config` | Read and enforced with a banner. |
 
 Verified live: `GET /api/config` with `X-Rosemont-Client: ios/1.0` now returns the iOS key, iOS app ID, `iosMinimumVersion: 1.0.0` and `platform: ios`. Still open on the web side: set `APPLE_TEAM_ID` (and later `APPLE_APP_STORE_ID`) in `deploy-env.yaml` and redeploy; the association file returns 404 until then.
+
+## 9. Bundle ID change (September 18, 2026, evening)
+
+The App Store Connect record was created as **Rosemont Club** with bundle ID **`com.rosemont.rosemontclub`** (App Store Connect would not accept `club.rosemont.ios`). The app now builds with that ID. Web side, please:
+
+1. **Required:** change the association file's app ID to `LAKT4757H4.com.rosemont.rosemontclub` (both `applinks` and `webcredentials`) in `app/api/[...path]/route.ts`, and update the bundle ID in `scripts/provision.py`, `lib/origin.ts`'s comment and `docs/IOS.md`.
+2. **Recommended:** register a second Firebase iOS app for `com.rosemont.rosemontclub` (Firebase iOS apps cannot be renamed) and send its API key, app ID and OAuth iOS client ID so the app's built-in fallback and Google sign-in use the matching client. Until then the existing `club.rosemont.ios` values keep working, because the REST sign-in does not check the bundle ID.
 
 ## 7. Non-goals
 

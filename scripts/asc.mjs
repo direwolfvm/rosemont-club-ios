@@ -20,13 +20,13 @@ import { createHash, createSign } from "node:crypto";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 
-const BUNDLE_ID = "club.rosemont.ios";
+const BUNDLE_ID = "com.rosemont.rosemontclub";
 const VERSION = "1.0";
 const API = "https://api.appstoreconnect.apple.com/v1";
 
 const META = {
-  name: "The Rosemont Club",
-  subtitle: "Neighbors, events, and resources",
+  name: "Rosemont Club",
+  subtitle: "Neighbors, events & resources",
   privacyPolicyUrl: "https://rosemont.club/privacy",
   primaryCategory: "SOCIAL_NETWORKING",
   secondaryCategory: "LIFESTYLE",
@@ -105,7 +105,7 @@ const get = (p) => api("GET", p), post = (p, b) => api("POST", p, b), patch = (p
 // ---------- lookups ----------
 async function app() {
   const { data } = await get(`/apps?filter[bundleId]=${BUNDLE_ID}`);
-  if (!data.length) throw new Error(`No App Store Connect app has bundle ID ${BUNDLE_ID}. Create it in App Store Connect (My Apps > + > New App) with name "${META.name}", bundle ID ${BUNDLE_ID}, SKU rosemont-club-ios, primary language English (U.S.).`);
+  if (!data.length) throw new Error(`No App Store Connect app has bundle ID ${BUNDLE_ID}. Create it in App Store Connect (My Apps > + > New App) with name "${META.name}", bundle ID ${BUNDLE_ID}, the SKU you chose, primary language English (U.S.).`);
   return data[0];
 }
 async function version(appId, create = false) {
@@ -158,13 +158,18 @@ const commands = {
     const l = await versionLocalization(v.id);
     await patch(`/appStoreVersionLocalizations/${l.id}`, { data: { type: "appStoreVersionLocalizations", id: l.id, attributes: {
       description: META.description, keywords: META.keywords, supportUrl: META.supportUrl, marketingUrl: META.marketingUrl,
-      promotionalText: META.promotionalText, whatsNew: META.whatsNew } } });
+      promotionalText: META.promotionalText, ...(VERSION === "1.0" ? {} : { whatsNew: META.whatsNew }) } } });
+    // App Store Connect rejects whatsNew on an app's first version.
     try {
-      const { data: decl } = await get(`/appStoreVersions/${v.id}/ageRatingDeclaration`);
-      const none = {}; for (const k of ["alcoholTobaccoOrDrugUseOrReferences","contests","gamblingSimulated","horrorOrFearThemes","matureOrSuggestiveThemes","medicalOrTreatmentInformation","profanityOrCrudeHumor","sexualContentGraphicAndNudity","sexualContentOrNudity","violenceCartoonOrFantasy","violenceRealistic","violenceRealisticProlongedGraphicOrSadistic"]) none[k] = "NONE";
-      await patch(`/ageRatingDeclarations/${decl.id}`, { data: { type: "ageRatingDeclarations", id: decl.id, attributes: { ...none, gambling: false, unrestrictedWebAccess: false, kidsAgeBand: null } } });
-      console.log("Age rating: all none (4+)");
-    } catch (e) { console.log("Age rating not set automatically (" + e.message.slice(0, 200) + "); answer it in App Store Connect."); }
+      // The declaration lives on the app info. Booleans and content descriptors are named
+      // explicitly because the API rejects unknown or mistyped attributes.
+      const { data: decl } = await get(`/appInfos/${info.id}/ageRatingDeclaration`);
+      const attrs = { ageRatingOverride: "NONE" };
+      for (const k of ["advertising", "gambling", "healthOrWellnessTopics", "lootBox", "messagingAndChat", "parentalControls", "ageAssurance", "socialMedia", "socialMediaAgeRestricted", "unrestrictedWebAccess", "userGeneratedContent"]) attrs[k] = false;
+      for (const k of ["alcoholTobaccoOrDrugUseOrReferences", "contests", "gamblingSimulated", "gunsOrOtherWeapons", "medicalOrTreatmentInformation", "profanityOrCrudeHumor", "sexualContentGraphicAndNudity", "sexualContentOrNudity", "horrorOrFearThemes", "matureOrSuggestiveThemes", "violenceCartoonOrFantasy", "violenceRealistic", "violenceRealisticProlongedGraphicOrSadistic"]) attrs[k] = "NONE";
+      await patch(`/ageRatingDeclarations/${decl.id}`, { data: { type: "ageRatingDeclarations", id: decl.id, attributes: attrs } });
+      console.log("Age rating: no descriptors (4+)");
+    } catch (e) { console.log("Age rating not set automatically (" + e.message.slice(0, 300) + "); answer it in App Store Connect."); }
     console.log("Metadata written for version " + VERSION);
   },
 

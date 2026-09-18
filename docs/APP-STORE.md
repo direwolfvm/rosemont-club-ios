@@ -6,10 +6,10 @@ Everything needed to list The Rosemont Club on the App Store. Values below are r
 
 | Field | Value |
 |---|---|
-| Name | The Rosemont Club |
-| Subtitle | Neighbors, events, and resources |
-| Bundle ID | `club.rosemont.ios` |
-| SKU | `rosemont-club-ios` |
+| Name | Rosemont Club (as created in App Store Connect) |
+| Subtitle | Neighbors, events & resources |
+| Bundle ID | `com.rosemont.rosemontclub` |
+| SKU | as created in App Store Connect |
 | Primary language | English (U.S.) |
 | Primary category | Social Networking |
 | Secondary category | Lifestyle |
@@ -107,7 +107,7 @@ The privacy manifest in the app (`PrivacyInfo.xcprivacy`) matches these answers.
 
 Done in the project:
 
-- [x] Bundle ID `club.rosemont.ios`, team `LAKT4757H4`, version 1.0 build 1.
+- [x] Bundle ID `com.rosemont.rosemontclub`, team `LAKT4757H4`, version 1.0 build 1.
 - [x] App icon (1024 px), launch screen, Face ID and calendar usage strings.
 - [x] Privacy manifest with collected data types and the UserDefaults API reason.
 - [x] Export compliance key (`ITSAppUsesNonExemptEncryption = NO`).
@@ -118,7 +118,7 @@ Done in the project:
 
 Done in App Store Connect (requires the API key's Issuer ID):
 
-- [ ] App record created with name, bundle ID, SKU, primary language.
+- [x] App record created ("Rosemont Club", `com.rosemont.rosemontclub`).
 - [ ] Version 1.0 metadata, URLs, categories, age rating.
 - [ ] Screenshots uploaded.
 - [ ] Build uploaded and attached to the version.

@@ -22,7 +22,7 @@ enum KeychainError: LocalizedError {
 /// `.biometryCurrentSet` access control, so reading them prompts for Face ID / Touch ID
 /// and the item becomes unreadable if the enrolled biometrics change.
 enum Keychain {
-    static let service = Bundle.main.bundleIdentifier ?? "club.rosemont.ios"
+    static let service = Bundle.main.bundleIdentifier ?? "com.rosemont.rosemontclub"
 
     static func save(_ data: Data, account: String, biometric: Bool) throws {
         delete(account: account)

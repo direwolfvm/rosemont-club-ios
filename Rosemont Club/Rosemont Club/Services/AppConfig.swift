@@ -23,7 +23,8 @@ struct AppConfig: Codable, Equatable {
     static let baseURL = URL(string: "https://rosemont.club")!
     static var apiURL: URL { baseURL.appending(path: "api") }
 
-    /// The Firebase iOS app's public values (bundle `club.rosemont.ios`).
+    /// The Firebase iOS app's public values (registered for bundle `club.rosemont.ios`; the
+    /// App Store bundle ID is `com.rosemont.rosemontclub`, and REST auth does not check it).
     static let fallback = AppConfig(
         apiKey: "AIzaSyATF0AOZCgT6VcQsxJFV5vs7dyCSINZmSc",
         authDomain: "permitting-ai-helper.firebaseapp.com",
