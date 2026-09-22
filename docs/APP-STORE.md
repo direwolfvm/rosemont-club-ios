@@ -17,7 +17,7 @@ Everything needed to list The Rosemont Club on the App Store. Values below are r
 | Price | Free |
 | Availability | United States |
 | Copyright | 2026 The Rosemont Club |
-| Version | 1.0 (build 5) |
+| Version | 1.0 (build 6) |
 
 ## URLs
 
@@ -134,7 +134,7 @@ Needs a person:
 
 ## Review round 1 (September 22, 2026): rejection and response
 
-Submission `7e2656ce-0f88-474f-a698-170ed34f201f` was rejected on two guidelines. Build 1.0 (5) addresses both on the app side; the website must ship two pieces before resubmitting (see `WEB-HANDOFF.md`'s reply thread: Apple provider enabled on the Firebase tenant, and `POST /api/me/delete`).
+Submission `7e2656ce-0f88-474f-a698-170ed34f201f` was rejected on two guidelines. Build 1.0 (6) addresses both on the app side; the website must ship two pieces before resubmitting (see `WEB-HANDOFF.md`'s reply thread: Apple provider enabled on the Firebase tenant, and `POST /api/me/delete`).
 
 **Guideline 4.8 (login services).** Added Sign in with Apple as a first-class option next to Google and email. Apple's identity token is exchanged with Firebase (`apple.com` provider). Users who choose Hide My Email get a relay address; the Club never sees their real email.
 
@@ -144,11 +144,11 @@ Submission `7e2656ce-0f88-474f-a698-170ed34f201f` was rejected on two guidelines
 
 1. Wait for the web side to confirm both server pieces are live.
 2. Record the deletion flow on a physical iPhone (Settings → Control Center → Screen Recording): sign in with the demo account, open the You tab, tap Delete account, confirm, and show the app returning to the signed-out state. Upload the recording somewhere reviewers can open it (iCloud link or App Store Connect attachment) and put the link in App Review Information → Notes. Note: this deletes the demo account, so create a fresh reviewer account afterwards (or record with a throwaway account instead) and update the demo credentials in App Store Connect.
-3. In App Store Connect, select build 1.0 (5) for version 1.0, reply to the review message with the text below, and submit.
+3. In App Store Connect, select build 1.0 (6) for version 1.0, reply to the review message with the text below, and submit.
 
 **Reply to App Review (paste in App Store Connect):**
 
-> Thank you for the review. Both issues are addressed in build 1.0 (5).
+> Thank you for the review. Both issues are addressed in build 1.0 (6).
 >
 > Guideline 4.8: The app now offers Sign in with Apple as an equivalent login option alongside Google and email/password. It is the first option on the sign-in screen.
 >

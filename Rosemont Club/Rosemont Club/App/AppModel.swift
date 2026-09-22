@@ -243,7 +243,12 @@ final class AppModel {
         }
         guard fresh.localId == current.localId else { throw AuthError.firebase("WRONG_ACCOUNT") }
         session = fresh
-        if let appleCode { try await auth.revokeAppleTokens(authorizationCode: appleCode, idToken: fresh.idToken) }
+        if let appleCode {
+            // Apple asks that tokens be revoked on deletion; a revocation failure must not
+            // strand a neighbor who wants their account gone, so it is logged, not fatal.
+            do { try await auth.revokeAppleTokens(authorizationCode: appleCode, idToken: fresh.idToken) }
+            catch { Logger(subsystem: Bundle.main.bundleIdentifier ?? "rosemont", category: "account").error("Apple token revocation failed: \(String(describing: error))") }
+        }
         let _: ServerMessage = try await api.post("me/delete", EmptyBody())
         try await auth.deleteAccount(idToken: fresh.idToken)
         await signOut()

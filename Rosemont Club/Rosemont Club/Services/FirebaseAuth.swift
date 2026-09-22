@@ -34,7 +34,10 @@ enum AuthError: LocalizedError {
                 return "That sign-in belongs to a different account. Confirm with the sign-in you use for this account."
             case "OPERATION_NOT_ALLOWED":
                 return "That sign-in method is not enabled yet. Please use another option."
-            default: return "We could not complete that request. Check your details and try again."
+            default:
+                // Keep the code visible so support can diagnose unexpected failures.
+                let short = code.split(separator: " ").first.map(String.init) ?? code
+                return "We could not complete that request (\(short)). Check your details and try again."
             }
         }
     }
@@ -110,7 +113,7 @@ struct FirebaseAuth {
     /// Apple authorization code. Required before deleting an account that used Apple.
     func revokeAppleTokens(authorizationCode: String, idToken: String) async throws {
         let _: TokenResponse = try await post("accounts:revokeToken", [
-            "providerId": "apple.com", "tokenType": "AUTHORIZATION_CODE", "token": authorizationCode,
+            "providerId": "apple.com", "tokenType": "CODE", "token": authorizationCode,
             "idToken": idToken, "tenantId": config.tenantId,
         ], base: identityV2)
     }
