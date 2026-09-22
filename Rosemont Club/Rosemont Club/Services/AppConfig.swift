@@ -16,20 +16,19 @@ struct AppConfig: Codable, Equatable {
     static let clientHeader = "ios/" + appVersion
     static var appVersion: String { Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "1.0" }
 
-    /// Firebase project's iOS OAuth client, registered by the web side on September 18, 2026.
-    static let googleClientID = "650621702399-71b77nam1lq620biotmitnr9u6ncs63p.apps.googleusercontent.com"
-    static let googleReversedClientID = "com.googleusercontent.apps.650621702399-71b77nam1lq620biotmitnr9u6ncs63p"
+    /// Firebase project's iOS OAuth client for `com.rosemont.rosemontclub` (September 22, 2026).
+    static let googleClientID = "650621702399-9jnqvhv2lq2o94m22bk70f74eebvmhoi.apps.googleusercontent.com"
+    static let googleReversedClientID = "com.googleusercontent.apps.650621702399-9jnqvhv2lq2o94m22bk70f74eebvmhoi"
 
     static let baseURL = URL(string: "https://rosemont.club")!
     static var apiURL: URL { baseURL.appending(path: "api") }
 
-    /// The Firebase iOS app's public values (registered for bundle `club.rosemont.ios`; the
-    /// App Store bundle ID is `com.rosemont.rosemontclub`, and REST auth does not check it).
+    /// The Firebase iOS app's public values for bundle `com.rosemont.rosemontclub` (registered September 22, 2026).
     static let fallback = AppConfig(
         apiKey: "AIzaSyATF0AOZCgT6VcQsxJFV5vs7dyCSINZmSc",
         authDomain: "permitting-ai-helper.firebaseapp.com",
         projectId: "permitting-ai-helper",
-        appId: "1:650621702399:ios:30fbf444d819cbf8273cca",
+        appId: "1:650621702399:ios:b515a4ac9849be25273cca",
         tenantId: "alex311-qfnem",
         iosMinimumVersion: nil,
         platform: "ios"
