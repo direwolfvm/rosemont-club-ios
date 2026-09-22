@@ -45,6 +45,7 @@ struct FirebaseAuth {
     var session: URLSession = .shared
 
     private var identity: URL { URL(string: "https://identitytoolkit.googleapis.com/v1/")! }
+    private var identityV2: URL { URL(string: "https://identitytoolkit.googleapis.com/v2/")! }
     private var secure: URL { URL(string: "https://securetoken.googleapis.com/v1/")! }
 
     func signIn(email: String, password: String) async throws -> FirebaseSession {
@@ -97,6 +98,21 @@ struct FirebaseAuth {
         return r.session(email: "")
     }
 
+    /// Sign-in providers linked to the account (`password`, `google.com`, `apple.com`, …).
+    func providers(idToken: String) async throws -> [String] {
+        let r: LookupResponse = try await post("accounts:lookup", ["idToken": idToken, "tenantId": config.tenantId])
+        return r.users?.first?.providerUserInfo?.compactMap(\.providerId) ?? []
+    }
+
+    /// Revokes the account's Sign in with Apple tokens through Firebase, using a fresh
+    /// Apple authorization code. Required before deleting an account that used Apple.
+    func revokeAppleTokens(authorizationCode: String, idToken: String) async throws {
+        let _: TokenResponse = try await post("accounts:revokeToken", [
+            "providerId": "apple.com", "tokenType": "AUTHORIZATION_CODE", "token": authorizationCode,
+            "idToken": idToken, "tenantId": config.tenantId,
+        ], base: identityV2)
+    }
+
     /// Permanently deletes the Firebase account behind `idToken`.
     func deleteAccount(idToken: String) async throws {
         let _: TokenResponse = try await post("accounts:delete", ["idToken": idToken, "tenantId": config.tenantId])
@@ -138,8 +154,8 @@ struct FirebaseAuth {
 
     // MARK: - Plumbing
 
-    private func post<T: Decodable>(_ method: String, _ body: [String: Any]) async throws -> T {
-        var request = URLRequest(url: identity.appending(path: method).appending(queryItems: [.init(name: "key", value: config.apiKey)]))
+    private func post<T: Decodable>(_ method: String, _ body: [String: Any], base: URL? = nil) async throws -> T {
+        var request = URLRequest(url: (base ?? identity).appending(path: method).appending(queryItems: [.init(name: "key", value: config.apiKey)]))
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = try JSONSerialization.data(withJSONObject: body)
@@ -179,6 +195,14 @@ struct FirebaseAuth {
                 expiresAt: Date().addingTimeInterval(Double(expiresIn ?? "3600") ?? 3600)
             )
         }
+    }
+
+    private struct LookupResponse: Decodable {
+        struct User: Decodable {
+            struct Provider: Decodable { var providerId: String? }
+            var providerUserInfo: [Provider]?
+        }
+        var users: [User]?
     }
 
     private struct RefreshResponse: Decodable {

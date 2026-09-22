@@ -31,6 +31,7 @@ final class AppModel {
     /// A universal link waiting to be shown once records are loaded.
     var pendingLink: DeepLink?
     private let google = GoogleSignIn()
+    private let appleReauth = AppleReauthorization()
 
     private var backgroundedAt: Date?
     private var refreshTask: Task<Void, Never>?
@@ -214,8 +215,14 @@ final class AppModel {
     }
 
     /// Deletes the neighbor's Club data on the server, then the shared sign-in itself.
+    /// Accounts that used Sign in with Apple first re-authorize so Apple's tokens can be revoked.
     func deleteAccount() async throws {
         guard let token = try await validToken() else { throw AuthError.firebase("INVALID_ID_TOKEN") }
+        let providers = (try? await auth.providers(idToken: token)) ?? []
+        if providers.contains("apple.com") {
+            let code = try await appleReauth.authorizationCode()
+            try await auth.revokeAppleTokens(authorizationCode: code, idToken: token)
+        }
         let _: ServerMessage = try await api.post("me/delete", EmptyBody())
         try await auth.deleteAccount(idToken: token)
         await signOut()
