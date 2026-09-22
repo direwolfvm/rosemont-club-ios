@@ -17,7 +17,7 @@ Everything needed to list The Rosemont Club on the App Store. Values below are r
 | Price | Free |
 | Availability | United States |
 | Copyright | 2026 The Rosemont Club |
-| Version | 1.0 (build 4) |
+| Version | 1.0 (build 5) |
 
 ## URLs
 
@@ -134,22 +134,22 @@ Needs a person:
 
 ## Review round 1 (September 22, 2026): rejection and response
 
-Submission `7e2656ce-0f88-474f-a698-170ed34f201f` was rejected on two guidelines. Build 1.0 (4) addresses both on the app side; the website must ship two pieces before resubmitting (see `WEB-HANDOFF.md`'s reply thread: Apple provider enabled on the Firebase tenant, and `POST /api/me/delete`).
+Submission `7e2656ce-0f88-474f-a698-170ed34f201f` was rejected on two guidelines. Build 1.0 (5) addresses both on the app side; the website must ship two pieces before resubmitting (see `WEB-HANDOFF.md`'s reply thread: Apple provider enabled on the Firebase tenant, and `POST /api/me/delete`).
 
 **Guideline 4.8 (login services).** Added Sign in with Apple as a first-class option next to Google and email. Apple's identity token is exchanged with Firebase (`apple.com` provider). Users who choose Hide My Email get a relay address; the Club never sees their real email.
 
-**Guideline 5.1.1(v) (account deletion).** Added "Delete account" on the You tab with a confirmation dialog. The app asks the server to remove the neighbor's Club profile, follows, RSVPs, poll responses, feedback, and stored address, then deletes the Firebase sign-in itself, then signs out. No email or phone call is needed. Accounts that used Sign in with Apple are asked to confirm with Apple once more so their Apple tokens can be revoked, as Apple requires.
+**Guideline 5.1.1(v) (account deletion).** Added "Delete account" on the You tab with a confirmation sheet that first re-confirms identity (password, Google, or Apple), because Firebase only deletes an account with a sign-in from the last few minutes. The app asks the server to remove the neighbor's Club profile, follows, RSVPs, poll responses, feedback, and stored address, then deletes the Firebase sign-in itself, then signs out. No email or phone call is needed. Accounts that used Sign in with Apple are asked to confirm with Apple once more so their Apple tokens can be revoked, as Apple requires.
 
 **Before resubmitting:**
 
 1. Wait for the web side to confirm both server pieces are live.
 2. Record the deletion flow on a physical iPhone (Settings → Control Center → Screen Recording): sign in with the demo account, open the You tab, tap Delete account, confirm, and show the app returning to the signed-out state. Upload the recording somewhere reviewers can open it (iCloud link or App Store Connect attachment) and put the link in App Review Information → Notes. Note: this deletes the demo account, so create a fresh reviewer account afterwards (or record with a throwaway account instead) and update the demo credentials in App Store Connect.
-3. In App Store Connect, select build 1.0 (4) for version 1.0, reply to the review message with the text below, and submit.
+3. In App Store Connect, select build 1.0 (5) for version 1.0, reply to the review message with the text below, and submit.
 
 **Reply to App Review (paste in App Store Connect):**
 
-> Thank you for the review. Both issues are addressed in build 1.0 (4).
+> Thank you for the review. Both issues are addressed in build 1.0 (5).
 >
 > Guideline 4.8: The app now offers Sign in with Apple as an equivalent login option alongside Google and email/password. It is the first option on the sign-in screen.
 >
-> Guideline 5.1.1(v): Account deletion is available in the app under the "You" tab → "Delete your account". After confirmation the app deletes the user's profile, group follows, RSVPs, poll responses, feedback, and stored address on our server, then permanently deletes the sign-in credential. For accounts created with Sign in with Apple, the app revokes the Apple tokens (via the Sign in with Apple REST API) before deletion. No customer-service step is required. A screen recording of the full flow, captured on a physical iPhone, is linked in the Notes field.
+> Guideline 5.1.1(v): Account deletion is available in the app under the "You" tab → "Delete your account". The user confirms their identity (password, Google, or Apple), then the app deletes the user's profile, group follows, RSVPs, poll responses, feedback, and stored address on our server, then permanently deletes the sign-in credential. For accounts created with Sign in with Apple, the app revokes the Apple tokens (via the Sign in with Apple REST API) before deletion. No customer-service step is required. A screen recording of the full flow, captured on a physical iPhone, is linked in the Notes field.

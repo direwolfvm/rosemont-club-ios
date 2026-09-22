@@ -30,6 +30,8 @@ enum AuthError: LocalizedError {
                 return "Your session has expired. Please sign in again."
             case "CREDENTIAL_TOO_OLD_LOGIN_AGAIN":
                 return "For your security, please sign in again and then retry."
+            case "WRONG_ACCOUNT":
+                return "That sign-in belongs to a different account. Confirm with the sign-in you use for this account."
             case "OPERATION_NOT_ALLOWED":
                 return "That sign-in method is not enabled yet. Please use another option."
             default: return "We could not complete that request. Check your details and try again."

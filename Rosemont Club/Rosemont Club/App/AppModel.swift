@@ -214,17 +214,38 @@ final class AppModel {
         try await adopt(s)
     }
 
-    /// Deletes the neighbor's Club data on the server, then the shared sign-in itself.
-    /// Accounts that used Sign in with Apple first re-authorize so Apple's tokens can be revoked.
-    func deleteAccount() async throws {
-        guard let token = try await validToken() else { throw AuthError.firebase("INVALID_ID_TOKEN") }
-        let providers = (try? await auth.providers(idToken: token)) ?? []
-        if providers.contains("apple.com") {
-            let code = try await appleReauth.authorizationCode()
-            try await auth.revokeAppleTokens(authorizationCode: code, idToken: token)
+    /// How the neighbor confirms it is really them before deletion. Firebase only deletes an
+    /// account with a sign-in from the last few minutes, so the flow re-authenticates first.
+    enum Reauthentication { case password(String), google, apple }
+
+    /// Sign-in providers linked to the current account (`password`, `google.com`, `apple.com`).
+    func linkedProviders() async -> [String] {
+        guard let token = try? await validToken() else { return [] }
+        return (try? await auth.providers(idToken: token)) ?? []
+    }
+
+    /// Re-authenticates, revokes Apple tokens when relevant, purges Club data on the server,
+    /// deletes the shared sign-in, and signs out.
+    func deleteAccount(confirmingWith reauth: Reauthentication) async throws {
+        guard let current = session else { throw AuthError.firebase("INVALID_ID_TOKEN") }
+        var fresh: FirebaseSession
+        var appleCode: String?
+        switch reauth {
+        case .password(let password):
+            let email = user?.email.nilIfEmpty ?? current.email
+            fresh = try await auth.signIn(email: email, password: password)
+        case .google:
+            fresh = try await auth.signIn(googleIDToken: try await google.signIn())
+        case .apple:
+            let r = try await appleReauth.authorize()
+            fresh = try await auth.signIn(appleIDToken: r.identityToken, rawNonce: r.rawNonce)
+            appleCode = r.authorizationCode
         }
+        guard fresh.localId == current.localId else { throw AuthError.firebase("WRONG_ACCOUNT") }
+        session = fresh
+        if let appleCode { try await auth.revokeAppleTokens(authorizationCode: appleCode, idToken: fresh.idToken) }
         let _: ServerMessage = try await api.post("me/delete", EmptyBody())
-        try await auth.deleteAccount(idToken: token)
+        try await auth.deleteAccount(idToken: fresh.idToken)
         await signOut()
         notify("Your account has been deleted.")
     }

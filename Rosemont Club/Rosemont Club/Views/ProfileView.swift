@@ -59,7 +59,6 @@ private struct SignedInProfile: View {
     @State private var activity = Activity()
     @State private var biometricError: String?
     @State private var confirmDelete = false
-    @State private var deleting = false
 
     init(user: Member) {
         self.user = user
@@ -120,19 +119,13 @@ private struct SignedInProfile: View {
             Text("Removes your Club profile, group follows, RSVPs, poll responses, and feedback, then deletes your sign-in. The same sign-in is shared with Alex311 Visibility, so it stops working there too. This cannot be undone.")
                 .font(.footnote).foregroundStyle(Color.mutedInk)
             Button(role: .destructive) { confirmDelete = true } label: {
-                Label(deleting ? "Deleting…" : "Delete account", systemImage: "trash")
+                Label("Delete account", systemImage: "trash")
             }
             .font(.system(size: 15, weight: .semibold))
             .foregroundStyle(Color.clay)
-            .disabled(deleting)
         }
         .card()
-        .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
-            Button("Delete my account and data", role: .destructive) { Task { await deleteAccount() } }
-            Button("Keep my account", role: .cancel) {}
-        } message: {
-            Text("Your Club profile and activity will be removed and your sign-in for The Rosemont Club and Alex311 Visibility will be deleted. This cannot be undone.")
-        }
+        .sheet(isPresented: $confirmDelete) { DeleteAccountView(user: user) }
     }
 
     private var securityCard: some View {
@@ -272,15 +265,92 @@ private struct SignedInProfile: View {
         }
     }
 
-    private func deleteAccount() async {
-        deleting = true; defer { deleting = false }
-        await model.perform { try await model.deleteAccount() }
-    }
-
     private func requestReview() async {
         await model.perform("Your review request is saved. Please do not send your address through feedback.") {
             let _: ServerMessage = try await model.api.post("residency/review", EmptyBody())
             await model.refresh()
+        }
+    }
+}
+
+/// Confirms identity, then deletes the account. Firebase requires a recent sign-in to
+/// delete, so the neighbor re-enters their password or confirms with Google or Apple.
+private struct DeleteAccountView: View {
+    @Environment(AppModel.self) private var model
+    @Environment(\.dismiss) private var dismiss
+    var user: Member
+    @State private var providers: [String]?
+    @State private var password = ""
+    @State private var busy = false
+    @State private var error: String?
+
+    private var usesPassword: Bool { providers?.contains("password") ?? true }
+    private var usesGoogle: Bool { providers?.contains("google.com") ?? false }
+    private var usesApple: Bool { providers?.contains("apple.com") ?? false }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Image(systemName: "trash").font(.system(size: 30)).foregroundStyle(Color.clay)
+                    Text("Delete your account").font(.pageTitle).foregroundStyle(Color.ink)
+                    Text("This removes your Club profile, group follows, RSVPs, poll responses, feedback, and any stored address, then permanently deletes the sign-in you share with Alex311 Visibility. This cannot be undone.")
+                        .foregroundStyle(Color.mutedInk)
+                    Text("First, confirm it's you.").font(.system(size: 16, weight: .semibold)).foregroundStyle(Color.ink)
+                    if providers == nil {
+                        ProgressView().tint(Color.brand)
+                    } else {
+                        if usesPassword {
+                            LabeledField(label: "Your password for \(user.email)") {
+                                SecureField("Password", text: $password)
+                                    .textFieldStyle(ClubFieldStyle())
+                                    .textContentType(.password)
+                            }
+                            Button(role: .destructive) { Task { await run(.password(password)) } } label: {
+                                Text(busy ? "Deleting…" : "Delete my account")
+                            }
+                            .buttonStyle(.primary)
+                            .disabled(busy || password.isEmpty)
+                        }
+                        if usesApple {
+                            Button(role: .destructive) { Task { await run(.apple) } } label: {
+                                Label("Confirm with Apple and delete", systemImage: "apple.logo")
+                            }
+                            .buttonStyle(.secondary)
+                            .disabled(busy)
+                        }
+                        if usesGoogle {
+                            Button(role: .destructive) { Task { await run(.google) } } label: {
+                                Label("Confirm with Google and delete", systemImage: "globe")
+                            }
+                            .buttonStyle(.secondary)
+                            .disabled(busy)
+                        }
+                    }
+                    if let error { NoticeText(text: error, error: true) }
+                    Button("Keep my account") { dismiss() }.buttonStyle(.secondary).disabled(busy)
+                }
+                .pageGutter()
+                .padding(.vertical, 12)
+            }
+            .background(Color.paper)
+            .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Cancel") { dismiss() }.disabled(busy) } }
+        }
+        .presentationDragIndicator(.visible)
+        .interactiveDismissDisabled(busy)
+        .task { providers = await model.linkedProviders() }
+    }
+
+    private func run(_ reauth: AppModel.Reauthentication) async {
+        busy = true; error = nil
+        defer { busy = false }
+        do {
+            try await model.deleteAccount(confirmingWith: reauth)
+            dismiss()
+        } catch AppleReauthorization.Error.cancelled, GoogleSignIn.Error.cancelled {
+            // Nothing to report.
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 }

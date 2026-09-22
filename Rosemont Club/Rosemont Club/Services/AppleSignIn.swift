@@ -1,30 +1,38 @@
 import AuthenticationServices
+import CryptoKit
 import Foundation
 import UIKit
 
-/// Re-runs Sign in with Apple to obtain a fresh, single-use authorization code.
-/// Used before account deletion so Firebase can revoke the neighbor's Apple tokens,
-/// as Apple requires for apps that offer Sign in with Apple.
+/// Re-runs Sign in with Apple for an existing user. Returns a fresh identity token (to
+/// re-authenticate with Firebase) and the single-use authorization code (so Firebase can
+/// revoke Apple's tokens before the account is deleted, as Apple requires).
 @MainActor
 final class AppleReauthorization: NSObject, ASAuthorizationControllerDelegate, ASAuthorizationControllerPresentationContextProviding {
+    struct Result { var identityToken: String; var authorizationCode: String; var rawNonce: String }
+
     enum Error: LocalizedError {
-        case cancelled, noCode
+        case cancelled, noCredential
         var errorDescription: String? {
             switch self {
             case .cancelled: "Account deletion was cancelled. Confirm with Apple to continue."
-            case .noCode: "Apple did not return an authorization. Please try again."
+            case .noCredential: "Apple did not return an authorization. Please try again."
             }
         }
     }
 
-    private var continuation: CheckedContinuation<String, Swift.Error>?
+    private var continuation: CheckedContinuation<Result, Swift.Error>?
     private var controller: ASAuthorizationController?
+    private var rawNonce = ""
 
-    func authorizationCode() async throws -> String {
+    func authorize() async throws -> Result {
         try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
+            var bytes = [UInt8](repeating: 0, count: 32)
+            _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+            rawNonce = bytes.map { String(format: "%02x", $0) }.joined()
             let request = ASAuthorizationAppleIDProvider().createRequest()
             request.requestedScopes = []
+            request.nonce = SHA256.hash(data: Data(rawNonce.utf8)).map { String(format: "%02x", $0) }.joined()
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
             controller.presentationContextProvider = self
@@ -34,9 +42,15 @@ final class AppleReauthorization: NSObject, ASAuthorizationControllerDelegate, A
     }
 
     nonisolated func authorizationController(controller: ASAuthorizationController, didCompleteWithAuthorization authorization: ASAuthorization) {
-        let code = (authorization.credential as? ASAuthorizationAppleIDCredential)?.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
+        let credential = authorization.credential as? ASAuthorizationAppleIDCredential
+        let token = credential?.identityToken.flatMap { String(data: $0, encoding: .utf8) }
+        let code = credential?.authorizationCode.flatMap { String(data: $0, encoding: .utf8) }
         Task { @MainActor in
-            if let code { self.continuation?.resume(returning: code) } else { self.continuation?.resume(throwing: Error.noCode) }
+            if let token, let code {
+                self.continuation?.resume(returning: Result(identityToken: token, authorizationCode: code, rawNonce: self.rawNonce))
+            } else {
+                self.continuation?.resume(throwing: Error.noCredential)
+            }
             self.continuation = nil; self.controller = nil
         }
     }
