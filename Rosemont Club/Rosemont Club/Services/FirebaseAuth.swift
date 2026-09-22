@@ -28,6 +28,10 @@ enum AuthError: LocalizedError {
             case "USER_DISABLED": return "This account has been disabled."
             case "TOKEN_EXPIRED", "INVALID_REFRESH_TOKEN", "USER_NOT_FOUND", "INVALID_ID_TOKEN":
                 return "Your session has expired. Please sign in again."
+            case "CREDENTIAL_TOO_OLD_LOGIN_AGAIN":
+                return "For your security, please sign in again and then retry."
+            case "OPERATION_NOT_ALLOWED":
+                return "That sign-in method is not enabled yet. Please use another option."
             default: return "We could not complete that request. Check your details and try again."
             }
         }
@@ -79,6 +83,29 @@ struct FirebaseAuth {
             "requestType": "PASSWORD_RESET", "email": email, "tenantId": config.tenantId,
             "continueUrl": AppConfig.baseURL.absoluteString,
         ])
+    }
+
+    /// Signs in with an Apple identity token from `ASAuthorizationAppleIDCredential`.
+    /// `rawNonce` is the unhashed nonce whose SHA-256 was sent in the Apple request.
+    func signIn(appleIDToken: String, rawNonce: String) async throws -> FirebaseSession {
+        let r: TokenResponse = try await post("accounts:signInWithIdp", [
+            "postBody": "id_token=\(appleIDToken)&providerId=apple.com&nonce=\(rawNonce)",
+            "requestUri": AppConfig.baseURL.absoluteString,
+            "returnSecureToken": true,
+            "tenantId": config.tenantId,
+        ])
+        return r.session(email: "")
+    }
+
+    /// Permanently deletes the Firebase account behind `idToken`.
+    func deleteAccount(idToken: String) async throws {
+        let _: TokenResponse = try await post("accounts:delete", ["idToken": idToken, "tenantId": config.tenantId])
+    }
+
+    /// Sets the display name on the Firebase account (used after Apple sign-in, which
+    /// only provides the name on the first authorization).
+    func setDisplayName(_ name: String, idToken: String) async throws {
+        let _: TokenResponse = try await post("accounts:update", ["idToken": idToken, "displayName": name, "returnSecureToken": false])
     }
 
     /// Signs in with a Google ID token obtained natively (see `GoogleSignIn`).

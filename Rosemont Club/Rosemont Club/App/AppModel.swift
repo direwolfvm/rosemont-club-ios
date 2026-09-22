@@ -195,6 +195,33 @@ final class AppModel {
         }
     }
 
+    func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws {
+        let s = try await auth.signIn(appleIDToken: idToken, rawNonce: rawNonce)
+        // Apple only sends the name on the first authorization; keep it.
+        if let fullName {
+            let name = PersonNameComponentsFormatter.localizedString(from: fullName, style: .default).trimmingCharacters(in: .whitespaces)
+            if !name.isEmpty {
+                try? await auth.setDisplayName(name, idToken: s.idToken)
+                try await adopt(s)
+                if let me = user, me.displayName == "Neighbor" || me.displayName.isEmpty,
+                   let updated: Member = try? await api.patch("me", ProfileUpdate(displayName: name, bio: me.bio)) {
+                    user = updated
+                }
+                return
+            }
+        }
+        try await adopt(s)
+    }
+
+    /// Deletes the neighbor's Club data on the server, then the shared sign-in itself.
+    func deleteAccount() async throws {
+        guard let token = try await validToken() else { throw AuthError.firebase("INVALID_ID_TOKEN") }
+        let _: ServerMessage = try await api.post("me/delete", EmptyBody())
+        try await auth.deleteAccount(idToken: token)
+        await signOut()
+        notify("Your account has been deleted.")
+    }
+
     func signInWithGoogle() async throws {
         let idToken = try await google.signIn()
         let s = try await auth.signIn(googleIDToken: idToken)

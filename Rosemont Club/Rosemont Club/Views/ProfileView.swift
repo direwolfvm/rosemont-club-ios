@@ -58,6 +58,8 @@ private struct SignedInProfile: View {
     @State private var result: String?
     @State private var activity = Activity()
     @State private var biometricError: String?
+    @State private var confirmDelete = false
+    @State private var deleting = false
 
     init(user: Member) {
         self.user = user
@@ -71,6 +73,7 @@ private struct SignedInProfile: View {
             securityCard
             residencyCard
             activitySection
+            deleteCard
             if user.admin {
                 VStack(alignment: .leading, spacing: 8) {
                     Label("Volunteer administration", systemImage: "gearshape").font(.cardTitle).foregroundStyle(Color.ink)
@@ -109,6 +112,27 @@ private struct SignedInProfile: View {
             .foregroundStyle(Color.clay)
         }
         .card()
+    }
+
+    private var deleteCard: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Delete your account").font(.cardTitle).foregroundStyle(Color.ink)
+            Text("Removes your Club profile, group follows, RSVPs, poll responses, and feedback, then deletes your sign-in. The same sign-in is shared with Alex311 Visibility, so it stops working there too. This cannot be undone.")
+                .font(.footnote).foregroundStyle(Color.mutedInk)
+            Button(role: .destructive) { confirmDelete = true } label: {
+                Label(deleting ? "Deleting…" : "Delete account", systemImage: "trash")
+            }
+            .font(.system(size: 15, weight: .semibold))
+            .foregroundStyle(Color.clay)
+            .disabled(deleting)
+        }
+        .card()
+        .confirmationDialog("Delete your account?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            Button("Delete my account and data", role: .destructive) { Task { await deleteAccount() } }
+            Button("Keep my account", role: .cancel) {}
+        } message: {
+            Text("Your Club profile and activity will be removed and your sign-in for The Rosemont Club and Alex311 Visibility will be deleted. This cannot be undone.")
+        }
     }
 
     private var securityCard: some View {
@@ -246,6 +270,11 @@ private struct SignedInProfile: View {
             }
             await model.refresh()
         }
+    }
+
+    private func deleteAccount() async {
+        deleting = true; defer { deleting = false }
+        await model.perform { try await model.deleteAccount() }
     }
 
     private func requestReview() async {

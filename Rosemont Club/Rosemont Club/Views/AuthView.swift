@@ -1,3 +1,5 @@
+import AuthenticationServices
+import CryptoKit
 import SwiftUI
 
 /// Sign in, create an account, or reset a password. Presented as a sheet.
@@ -23,6 +25,8 @@ struct AuthView: View {
     @State private var registered = false
     @State private var biometricChoice = Biometrics.available
     @State private var goToProfile = false
+    @State private var appleNonce = ""
+    @Environment(\.colorScheme) private var colorScheme
     @FocusState private var focus: Field?
 
     enum Field { case name, email, password }
@@ -86,6 +90,17 @@ struct AuthView: View {
             }
 
             if !reset {
+                SignInWithAppleButton(.continue) { request in
+                    appleNonce = Self.randomNonce()
+                    request.requestedScopes = [.fullName, .email]
+                    request.nonce = Self.sha256(appleNonce)
+                } onCompletion: { result in
+                    Task { await apple(result) }
+                }
+                .signInWithAppleButtonStyle(colorScheme == .dark ? .white : .black)
+                .frame(height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+                .disabled(busy)
                 Button {
                     Task { await google() }
                 } label: {
@@ -232,6 +247,37 @@ struct AuthView: View {
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    private func apple(_ result: Result<ASAuthorization, Error>) async {
+        guard !busy else { return }
+        switch result {
+        case .failure(let error):
+            if (error as? ASAuthorizationError)?.code != .canceled { self.error = "Apple sign-in did not finish. Please try again." }
+        case .success(let authorization):
+            guard let credential = authorization.credential as? ASAuthorizationAppleIDCredential,
+                  let tokenData = credential.identityToken, let token = String(data: tokenData, encoding: .utf8) else {
+                self.error = "Apple sign-in did not finish. Please try again."; return
+            }
+            busy = true; error = nil
+            defer { busy = false }
+            do {
+                try await model.signInWithApple(idToken: token, rawNonce: appleNonce, fullName: credential.fullName)
+                if Biometrics.available, !model.biometricLockEnabled { welcomeAfterSignIn() } else { dismiss() }
+            } catch {
+                self.error = error.localizedDescription
+            }
+        }
+    }
+
+    private static func randomNonce() -> String {
+        var bytes = [UInt8](repeating: 0, count: 32)
+        _ = SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes)
+        return bytes.map { String(format: "%02x", $0) }.joined()
+    }
+
+    private static func sha256(_ s: String) -> String {
+        SHA256.hash(data: Data(s.utf8)).map { String(format: "%02x", $0) }.joined()
     }
 
     private func google() async {
